@@ -62,4 +62,16 @@ root.SaveToFile("output.json", -1);   // 압축 형식으로 저장 (indent < 0)
 
 ### 예제 (`crud/main.cpp`)
 
-`main.cpp`는 object/array를 구성하고, 콘솔에 출력하고, `output.json`으로 저장한 뒤 다시 읽어들이는 전체 흐름을 보여주는 데모입니다.
+`main.cpp`는 object/array를 구성하고, 콘솔에 출력하고, `output.json`으로 저장한 뒤 다시 읽어들이는 전체 흐름을 보여주는 데모입니다. 데모 실행 후 이어서 gtest/gmock 테스트가 실행됩니다.
+
+## 테스트 (`crud/JsonTests.cpp`)
+
+NuGet 패키지 `gmock` 1.11.0(gtest 포함, `crud/packages.config`, `crud/crud.vcxproj`의 `ExtensionTargets`로 연결)을 사용합니다. 별도 테스트 프로젝트 없이 `crud` 프로젝트 안에서 `main()`이 데모 실행 후 `RUN_ALL_TESTS()`를 호출하는 구조입니다.
+
+- `JsonParseTest` / `JsonParseErrorTest`: object/array/nested 구조, 이스케이프·유니코드 문자열, 숫자 포맷(정수/음수/소수/지수) 파싱과, 잘못된 JSON 입력 시 `json::ParseException`(line/column 포함) 발생 검증
+- `JsonAccessTest`: `operator[]`의 object 자동 생성(auto-vivify), 존재하지 않는 키에 대한 `const` 접근 예외, 타입 불일치 시 `AsXxx()` 예외, 배열 `PushBack`/인덱스 접근
+- `JsonSerializeTest`: compact/pretty 직렬화 및 재파싱 라운드트립, 빈 array/object 직렬화
+- `JsonFileIoTest`: `SaveToFile` → `ParseFile` 라운드트립, 존재하지 않는 파일 파싱 시 예외 검증 (`::testing::TempDir()` 사용)
+- `JsonMockIntegrationTest`: `MOCK_METHOD`/`EXPECT_CALL`로 직렬화된 JSON을 전달받는 소비자(`JsonSink`)와의 상호작용을 검증하는 gmock 시나리오 (단일 호출 검증, `InSequence`를 이용한 배치 순서 검증)
+
+빌드 후 `crud.exe`를 실행하면 데모 출력과 함께 테스트 결과가 콘솔에 출력됩니다.

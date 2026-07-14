@@ -33,3 +33,10 @@ out/
 *.cachefile
 *.VC.db
 *.VC.VC.opendb
+
+## NuGet
+packages/
+
+## Demo/test output
+output.json
+
