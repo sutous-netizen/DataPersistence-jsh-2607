@@ -1,6 +1,7 @@
 #pragma once
 
 #include <iostream>
+#include <string>
 
 #include "IRecordStore.h"
 
@@ -32,6 +33,8 @@ namespace crudapp {
         json::Value ReadFieldsFromInput();
         // Reads a line and parses it as an integer id; returns -1 on failure.
         int ReadIdFromInput();
+        // Parses a full string as an integer id; returns -1 on failure.
+        int ParseId(const std::string& text) const;
 
         IRecordStore& store_;
         std::istream& in_;

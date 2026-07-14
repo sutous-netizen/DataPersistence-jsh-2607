@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 #include "Json.h"
 
 namespace crudapp {
@@ -13,6 +15,8 @@ namespace crudapp {
 
         virtual int Create(json::Value fields) = 0;
         virtual const json::Value* Find(int id) const = 0;
+        // Returns every record whose string field `key` equals `value`.
+        virtual json::Value::Array FindByField(const std::string& key, const std::string& value) const = 0;
         virtual const json::Value::Array& All() const = 0;
         virtual bool Update(int id, const json::Value& fields) = 0;
         virtual bool Delete(int id) = 0;

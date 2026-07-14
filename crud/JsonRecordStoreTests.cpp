@@ -195,6 +195,86 @@ TEST(JsonRecordStoreTest, UpdateWithNonObjectFieldsLeavesRecordUnchanged) {
     std::remove(path.c_str());
 }
 
+TEST(JsonRecordStoreTest, FindByFieldReturnsAllMatchingRecords) {
+    std::string path = TempStorePath("record_store_find_by_field.json");
+    std::remove(path.c_str());
+    crudapp::JsonRecordStore store(path);
+
+    store.Create(Fields("Alice", "engineer"));
+    store.Create(Fields("Bob", "designer"));
+    store.Create(Fields("Carol", "engineer"));
+
+    json::Value::Array matches = store.FindByField("role", "engineer");
+    ASSERT_EQ(matches.size(), 2u);
+    EXPECT_EQ(matches[0]["name"].AsString(), "Alice");
+    EXPECT_EQ(matches[1]["name"].AsString(), "Carol");
+
+    std::remove(path.c_str());
+}
+
+TEST(JsonRecordStoreTest, FindByFieldReturnsEmptyWhenNoMatch) {
+    std::string path = TempStorePath("record_store_find_by_field_missing.json");
+    std::remove(path.c_str());
+    crudapp::JsonRecordStore store(path);
+
+    store.Create(Fields("Alice", "engineer"));
+
+    EXPECT_TRUE(store.FindByField("role", "manager").empty());
+    EXPECT_TRUE(store.FindByField("nonexistent-key", "anything").empty());
+
+    std::remove(path.c_str());
+}
+
+TEST(JsonRecordStoreTest, DeleteLeavesOtherRecordsIntactOnDiskAndInMemory) {
+    std::string path = TempStorePath("record_store_delete_multi.json");
+    std::remove(path.c_str());
+    crudapp::JsonRecordStore store(path);
+
+    int firstId = store.Create(Fields("Alice", "engineer"));
+    int middleId = store.Create(Fields("Bob", "designer"));
+    int lastId = store.Create(Fields("Carol", "manager"));
+
+    EXPECT_TRUE(store.Delete(middleId));
+
+    EXPECT_EQ(store.All().size(), 2u);
+    ASSERT_NE(store.Find(firstId), nullptr);
+    EXPECT_EQ((*store.Find(firstId))["name"].AsString(), "Alice");
+    EXPECT_EQ(store.Find(middleId), nullptr);
+    ASSERT_NE(store.Find(lastId), nullptr);
+    EXPECT_EQ((*store.Find(lastId))["name"].AsString(), "Carol");
+
+    json::Value onDisk = json::Value::ParseFile(path);
+    ASSERT_TRUE(onDisk.IsArray());
+    EXPECT_EQ(onDisk.AsArray().size(), 2u);
+
+    std::remove(path.c_str());
+}
+
+TEST(JsonRecordStoreTest, UpdateOnlyChangesTheTargetFieldLeavingOthersIntact) {
+    std::string path = TempStorePath("record_store_update_single_field.json");
+    std::remove(path.c_str());
+    crudapp::JsonRecordStore store(path);
+
+    json::Value fields = json::Value::MakeObject();
+    fields.Set("name", "Alice");
+    fields.Set("role", "engineer");
+    fields.Set("department", "platform");
+    int id = store.Create(fields);
+
+    json::Value patch = json::Value::MakeObject();
+    patch.Set("role", "manager");
+
+    EXPECT_TRUE(store.Update(id, patch));
+
+    const json::Value* updated = store.Find(id);
+    ASSERT_NE(updated, nullptr);
+    EXPECT_EQ((*updated)["role"].AsString(), "manager");
+    EXPECT_EQ((*updated)["name"].AsString(), "Alice");
+    EXPECT_EQ((*updated)["department"].AsString(), "platform");
+
+    std::remove(path.c_str());
+}
+
 TEST(JsonRecordStoreTest, FindAndDeleteReturnNotFoundForOutOfRangeIds) {
     std::string path = TempStorePath("record_store_boundary_ids.json");
     std::remove(path.c_str());

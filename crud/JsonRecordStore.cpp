@@ -65,6 +65,17 @@ namespace crudapp {
         return it == records_.end() ? nullptr : &(*it);
     }
 
+    json::Value::Array JsonRecordStore::FindByField(const std::string& key, const std::string& value) const {
+        json::Value::Array matches;
+        for (const auto& record : records_) {
+            if (record.IsObject() && record.Contains(key) && record[key].IsString() &&
+                record[key].AsString() == value) {
+                matches.push_back(record);
+            }
+        }
+        return matches;
+    }
+
     const json::Value::Array& JsonRecordStore::All() const {
         return records_;
     }

@@ -27,6 +27,10 @@ namespace crudapp {
         // exists. The pointer is invalidated by any subsequent mutation.
         const json::Value* Find(int id) const override;
 
+        // Returns every record whose string field `key` equals `value`.
+        // Records without that field, or where it isn't a string, don't match.
+        json::Value::Array FindByField(const std::string& key, const std::string& value) const override;
+
         // Returns all records, in storage order.
         const json::Value::Array& All() const override;
 

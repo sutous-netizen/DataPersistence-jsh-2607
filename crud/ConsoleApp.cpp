@@ -15,7 +15,7 @@ namespace crudapp {
         out_ << "\n=== CRUD Console ===\n"
              << "1. Create\n"
              << "2. Read all\n"
-             << "3. Read one\n"
+             << "3. Read one (by id or key=value)\n"
              << "4. Update\n"
              << "5. Delete\n"
              << "6. Exit\n"
@@ -63,17 +63,21 @@ namespace crudapp {
         return fields;
     }
 
+    int ConsoleApp::ParseId(const std::string& text) const {
+        try {
+            size_t consumed = 0;
+            int id = std::stoi(text, &consumed);
+            return consumed == text.size() ? id : -1;
+        } catch (const std::exception&) {
+            return -1;
+        }
+    }
+
     int ConsoleApp::ReadIdFromInput() {
         out_ << "Id: ";
         std::string line;
         std::getline(in_, line);
-        try {
-            size_t consumed = 0;
-            int id = std::stoi(line, &consumed);
-            return consumed == line.size() ? id : -1;
-        } catch (const std::exception&) {
-            return -1;
-        }
+        return ParseId(line);
     }
 
     void ConsoleApp::HandleCreate() {
@@ -97,7 +101,26 @@ namespace crudapp {
     }
 
     void ConsoleApp::HandleReadOne() {
-        int id = ReadIdFromInput();
+        out_ << "Enter an id, or key=value to search by field: ";
+        std::string line;
+        std::getline(in_, line);
+
+        auto separator = line.find('=');
+        if (separator != std::string::npos) {
+            std::string key = line.substr(0, separator);
+            std::string value = line.substr(separator + 1);
+            json::Value::Array matches = store_.FindByField(key, value);
+            if (matches.empty()) {
+                out_ << "No records with " << key << "=" << value << "\n";
+                return;
+            }
+            for (const auto& record : matches) {
+                out_ << record.ToString(2) << "\n";
+            }
+            return;
+        }
+
+        int id = ParseId(line);
         const json::Value* record = store_.Find(id);
         if (!record) {
             out_ << "No record with id " << id << "\n";

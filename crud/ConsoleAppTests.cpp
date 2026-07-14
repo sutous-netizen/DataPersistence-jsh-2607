@@ -33,6 +33,7 @@ namespace {
     public:
         MOCK_METHOD(int, Create, (json::Value fields), (override));
         MOCK_METHOD(const json::Value*, Find, (int id), (const, override));
+        MOCK_METHOD(json::Value::Array, FindByField, (const std::string& key, const std::string& value), (const, override));
         MOCK_METHOD(const json::Value::Array&, All, (), (const, override));
         MOCK_METHOD(bool, Update, (int id, const json::Value& fields), (override));
         MOCK_METHOD(bool, Delete, (int id), (override));
@@ -254,6 +255,83 @@ TEST(ConsoleAppTest, DeleteCallsStoreDeleteWithParsedId) {
     app.Run();
 
     EXPECT_THAT(out.str(), HasSubstr("Deleted record with id 5"));
+}
+
+TEST(ConsoleAppTest, ReadOneWithKeyValueSearchesByField) {
+    std::string path = TempStorePath("console_app_search_by_field.json");
+    std::remove(path.c_str());
+    crudapp::JsonRecordStore store(path);
+    store.Create([] {
+        json::Value fields = json::Value::MakeObject();
+        fields.Set("name", "Alice");
+        fields.Set("role", "engineer");
+        return fields;
+    }());
+    store.Create([] {
+        json::Value fields = json::Value::MakeObject();
+        fields.Set("name", "Bob");
+        fields.Set("role", "designer");
+        return fields;
+    }());
+
+    std::istringstream in("3\nrole=designer\n6\n");
+    std::ostringstream out;
+
+    crudapp::ConsoleApp app(store, in, out);
+    app.Run();
+
+    EXPECT_THAT(out.str(), HasSubstr("\"name\": \"Bob\""));
+    EXPECT_THAT(out.str(), ::testing::Not(HasSubstr("\"name\": \"Alice\"")));
+
+    std::remove(path.c_str());
+}
+
+TEST(ConsoleAppTest, ReadOneWithKeyValueReportsNoMatches) {
+    std::string path = TempStorePath("console_app_search_by_field_missing.json");
+    std::remove(path.c_str());
+    crudapp::JsonRecordStore store(path);
+
+    std::istringstream in("3\nrole=manager\n6\n");
+    std::ostringstream out;
+
+    crudapp::ConsoleApp app(store, in, out);
+    app.Run();
+
+    EXPECT_THAT(out.str(), HasSubstr("No records with role=manager"));
+
+    std::remove(path.c_str());
+}
+
+TEST(ConsoleAppTest, UpdateOfMissingIdReportsNoRecord) {
+    std::string path = TempStorePath("console_app_update_missing.json");
+    std::remove(path.c_str());
+    crudapp::JsonRecordStore store(path);
+
+    std::istringstream in("4\n99\nrole=manager\n\n6\n");
+    std::ostringstream out;
+
+    crudapp::ConsoleApp app(store, in, out);
+    app.Run();
+
+    EXPECT_THAT(out.str(), HasSubstr("No record with id 99"));
+
+    std::remove(path.c_str());
+}
+
+TEST(ConsoleAppTest, DeleteOfMissingIdReportsNoRecord) {
+    std::string path = TempStorePath("console_app_delete_missing.json");
+    std::remove(path.c_str());
+    crudapp::JsonRecordStore store(path);
+
+    std::istringstream in("5\n99\n6\n");
+    std::ostringstream out;
+
+    crudapp::ConsoleApp app(store, in, out);
+    app.Run();
+
+    EXPECT_THAT(out.str(), HasSubstr("No record with id 99"));
+
+    std::remove(path.c_str());
 }
 
 TEST(ConsoleAppTest, ReadAllCallsStoreAllOnceAndSortsResultsByRecordId) {
