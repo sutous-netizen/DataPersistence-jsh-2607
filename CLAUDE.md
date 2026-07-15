@@ -206,6 +206,8 @@ NuGet 패키지 `gmock` 1.11.0(gtest 포함, `crud/packages.config`, `crud/crud.
 
 **Debug 전용 테스트 빌드**: `*Tests.cpp` 파일들과 이들이 끌어오는 gtest/gmock 소스(`gtest-all.cc`, `gmock-all.cc`)는 `crud.vcxproj`에서 Release 구성일 때 `ExcludedFromBuild`로 컴파일에서 제외됩니다. `main.cpp`의 `--test` 처리와 `<gmock/gmock.h>`/`<gtest/gtest.h>` include도 `#ifdef _DEBUG`로 감싸져 있어, Release 바이너리는 gtest/gmock에 전혀 의존하지 않고 CRUD 콘솔 앱과 `--demo`만 포함합니다. 테스트는 Debug 빌드(`crud.exe --test`)에서만 실행할 수 있습니다.
 
+**Visual Studio에서 F5로 바로 테스트 확인하기**: `crud.vcxproj.user`는 커밋되지 않는 사용자별 설정 파일(`.gitignore`의 `*.vcxproj.user`)이라, 새로 클론했거나 이 설정이 없는 환경에서는 F5(디버그 시작)를 누르면 명령줄 인자가 비어 있어 대화형 콘솔 메뉴가 뜹니다. Debug 구성에서 F5로 바로 테스트를 돌리려면 프로젝트 속성 → 디버깅(Debugging) → 명령 인수(Command Arguments)에 `--test`를 Debug|Win32, Debug|x64 두 구성에 입력하면 됩니다(Release 구성은 비워 두어 원래 콘솔 앱이 실행되게 합니다).
+
 
 
 ## commit 정책
